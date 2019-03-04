@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -e
+
+main() {
+	local WEBSTORM_VERSION="${WEBSTORM_VERSION:-"2018.3.5"}"
+
+	echo "Installing WebStorm $WEBSTORM_VERSION"
+
+	mkdir -p /opt
+	cd /opt
+	wget https://download.jetbrains.com/webstorm/WebStorm-$WEBSTORM_VERSION.tar.gz
+	tar -xf WebStorm-$WEBSTORM_VERSION.tar.gz
+	rm WebStorm-$WEBSTORM_VERSION.tar.gz
+	mv WebStorm-* WebStorm
+
+	ln -s /opt/WebStorm/bin/webstorm.sh /usr/local/bin/webstorm
+}
+
+main

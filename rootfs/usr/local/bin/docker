@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+## A Docker wrapper that resolve directory paths for mounted volume
+
+set -e
+
+main() {
+	local ARGS=()
+	local FIND="$HOME"
+	local DOCKER_BIN="$(which -a docker | tail -n1)"
+	local CONTAINER_ID="$(hostname)"
+	local VOLUMES="$($DOCKER_BIN inspect --format='{{range .Mounts}}{{ if and (eq .Type "volume") }}{{printf "%s:%s\n" .Source .Destination}}{{end}}{{end}}' $HOSTNAME | sed '/^$/d')"
+
+	for ARG in "$@"; do
+		echo "$ARG" | grep -P '^.+:.+$' &> /dev/null && {
+			local CURRENT_SRC="${ARG%%:*}"
+			local CURRENT_DST="${ARG#*:}"
+
+			for VOLUME in $VOLUMES;do
+				local VOLUME_SRC="${VOLUME%%:*}"
+				local VOLUME_DST="${VOLUME#*:}"
+
+				if [[ "$CURRENT_SRC" =~ ^${VOLUME_DST} ]];then
+					ARG="$(echo $CURRENT_SRC | sed "s#${VOLUME_DST}#${VOLUME_SRC}#"):$CURRENT_DST"
+				fi
+			done
+
+		} || true
+
+		ARGS+=( "$ARG" )
+	done
+
+	$DOCKER_BIN "${ARGS[@]}"
+}
+
+main "$@"

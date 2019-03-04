@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -e
+
+main() {
+	local PHPSTORM_VERSION="${PHPSTORM_VERSION:-"2018.3.4"}"
+
+	echo "Installing PhpStorm $PHPSTORM_VERSION"
+
+	mkdir -p /opt
+	cd /opt
+	wget https://download.jetbrains.com/webide/PhpStorm-$PHPSTORM_VERSION.tar.gz
+	tar -xf PhpStorm-$PHPSTORM_VERSION.tar.gz
+	rm PhpStorm-$PHPSTORM_VERSION.tar.gz
+	mv PhpStorm-* PhpStorm
+
+	ln -s /opt/PhpStorm/bin/phpstorm.sh /usr/local/bin/phpstorm
+}
+
+main

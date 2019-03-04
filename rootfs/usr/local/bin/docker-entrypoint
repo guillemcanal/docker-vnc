@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+set -e
+
+main() {
+	# create user's home directory
+	if [ ! -d "$HOME" ];then
+		mkdir $HOME
+	fi
+
+	local USER_GID=${USER_GID:-$USER_UID}
+	local USER_GROUP=${USER_GROUP:-$USER_NAME}
+
+	# create the user
+	local USER_CHECK="$(id -u $USER_NAME 2> /dev/null || echo "UNKNOWN")"
+	if [ "$USER_CHECK" == "UNKNOWN" ];then
+		groupadd --gid $USER_GID $USER_GROUP
+		useradd  --uid $USER_UID --gid $USER_GID --home-dir $HOME --shell $USER_SHELL $USER_NAME
+		# add user to sudoer
+		if [ "$USER_SUDOER" == "yes" ];then
+			echo "$USER_NAME    ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+		fi
+	fi
+
+	# copy default dotfiles
+	shopt -s dotglob
+	yes|cp -ru /dotfiles/* $HOME/
+	shopt -u dotglob
+
+	# create docker group
+	local DOCKER_CHECK="$(id -u docker 2> /dev/null || echo "UNKNOWN")"
+	if [ "$DOCKER_CHECK" == "UNKNOWN" ];then
+		groupadd --gid 999 docker
+	fi
+
+	# fix docker socket permission
+	local DOCKER_SOCK="/var/run/docker.sock"
+	if [ -S "$DOCKER_SOCK" ];then
+		chown root:docker "$DOCKER_SOCK"
+		usermod -a -G docker $USER_NAME || true
+	fi
+
+	# check HOME folder ownership
+	local OWNER_UID=$(stat -c '%u' $HOME)
+	if [ "$(id -u $USER_NAME)" != "$OWNER_UID" ];then
+		chown -R $USER_NAME:$USER_GROUP $HOME
+	fi
+
+	# step down from root to a non-privileged user
+	ARGS=("$@")
+	exec gosu "${USER_NAME}" "${ARGS[@]}"
+}
+
+main "$@"

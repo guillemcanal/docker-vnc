@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+
+## Share an App over a VNC session
+
+set -e
+
+cleanup () {
+	echo "exiting with PID $PID"
+    kill -s $PID
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM
+
+configure_vnc() {
+	local SIZES=(${VNC_GEOMETRY//x/ })
+	local MAX_WIDTH=$((${SIZES[0]}-20))
+	local MAX_HEIGHT=$((${SIZES[1]}-20))
+
+	# configure x11 settings
+	cat <<-EOF > $HOME/.Xresources
+	Xft.dpi: $VNC_DPI
+	Xft.autohint: 0
+	Xft.lcdfilter: lcddefault
+	Xft.hintstyle: hintfull
+	Xft.hinting: 1
+	Xft.antialias: 1
+	Xft.rgba: rgb
+	i3wn.maxFloatingWidth: $MAX_WIDTH
+	i3wn.maxFloatingHeight: $MAX_HEIGHT
+	EOF
+
+	# create vnc config dir
+	mkdir -p $HOME/.vnc && chown $USER_NAME $HOME/.vnc
+
+	# remove stale files
+	rm -rf $HOME/.vnc/{*log,*.pid,passwd,xstartup}
+
+	# create startup script
+	cat <<-EOF > $HOME/.vnc/xstartup
+	#!/usr/bin/env bash
+	xrdb $HOME/.Xresources
+	i3 &
+	EOF
+
+	chmod +x $HOME/.vnc/xstartup && chown $USER_NAME $HOME/.vnc/xstartup
+
+	# create password file
+	if [ ! -f "$HOME/.vnc/passwd" ];then
+		echo "${VNC_PASS:-"vncpassword"}" | vncpasswd -f > $HOME/.vnc/passwd
+		chmod 600 $HOME/.vnc/passwd
+	fi
+}
+
+main() {
+	local WAIT="no"
+	local ARGV=()
+
+	# extract arguments
+	for ARG in "$@";do
+		case $ARG in
+			--wait)
+				WAIT="yes"
+				;;
+			--hidpi)
+				VNC_DPI="180"
+				;;
+			*)
+				ARGV+=($ARG)
+				;;
+		esac
+	done
+
+	configure_vnc
+
+	local DISPLAY_NUM="${ARGV[0]:-"0"}"
+	local APP_BIN="${ARGV[1]:-"xfce4-terminal"}"
+
+	unset ARGV[0] || true
+	unset ARGV[1] || true
+
+	# kill the previous vnc session if it exists
+	vncserver -kill :$DISPLAY_NUM || true
+
+	# start the server
+	vncserver :$DISPLAY_NUM -dpi $VNC_DPI -geometry $VNC_GEOMETRY -desktop "$APP_BIN:$DISPLAY_NUM"
+
+	# export variables used by graphical applications
+	export DISPLAY=":$DISPLAY_NUM"
+
+	echo "starting app $APP_BIN"
+	$APP_BIN "${ARGV[@]}" &> /dev/null &
+
+	if [ "$WAIT" == "yes" ];then
+		sleep infinity & PID=$!
+		wait $PID
+	fi
+}
+
+main "$@"

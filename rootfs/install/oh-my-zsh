@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -e
+
+main() {
+	echo "Installing Oh My ZSH!"
+	sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+}
+
+main

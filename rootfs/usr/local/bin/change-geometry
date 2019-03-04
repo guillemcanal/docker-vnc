@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# dynamically set the geometry of an X session
+# usage: change-geometry DISPLAY_NUM WIDTH HEIGHT REFRESH_RATE
+
+set -ex 
+
+main() {
+	local DISPLAY_NUM="${1:-"0"}"
+	local WIDTH="${2:-"1280"}"
+	local HEIGHT="${3:-"800"}"
+	local REFRESH="${4:-"60"}"
+
+	export DISPLAY=":$DISPLAY_NUM"
+	
+	# back to an existing resolution
+	xrandr -s 800x600
+	
+	# remove the previously declared custom mode
+	xrandr --delmode VNC-0 custom 2> /dev/null || true
+	xrandr --rmmode custom 2> /dev/null || true
+
+	# create the custom mode
+	xrandr --newmode custom $(gtf $WIDTH $HEIGHT $REFRESH | sed -ne 's/"//g;s/ Modeline //p' | awk '{$1= ""; print $0}')
+	xrandr --addmode VNC-0 custom
+	
+	# apply the custom mode
+	xrandr --output VNC-0 --mode custom
+}
+
+main "$@"

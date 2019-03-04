@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -e
+
+main() {
+	local IDEA_VERSION="${IDEA_VERSION:-"2018.3.5"}"
+
+	echo "Installing IdeaIC $IDEA_VERSION"
+
+	mkdir -p /opt
+	cd /opt
+	wget https://download.jetbrains.com/idea/ideaIC-$IDEA_VERSION.tar.gz
+	tar -xf ideaIC-$IDEA_VERSION.tar.gz
+	rm ideaIC-$IDEA_VERSION.tar.gz
+	mv idea-IC-* IdeaIC
+
+	ln -s /opt/IdeaIC/bin/idea.sh /usr/local/bin/idea
+}
+
+main

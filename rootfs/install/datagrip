@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -e
+
+main() {
+	local DATAGRIP_VERSION="${DATAGRIP_VERSION:-"2018.3.3"}"
+
+	echo "Installing DataGrip $DATAGRIP_VERSION"
+
+	mkdir -p /opt
+	cd /opt
+	wget https://download.jetbrains.com/datagrip/datagrip-$DATAGRIP_VERSION.tar.gz
+	tar -xf datagrip-$DATAGRIP_VERSION.tar.gz
+	rm datagrip-$DATAGRIP_VERSION.tar.gz
+	mv DataGrip-* DataGrip
+
+	ln -s /opt/DataGrip/bin/datagrip.sh /usr/local/bin/datagrip
+}
+
+main

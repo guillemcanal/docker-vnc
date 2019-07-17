@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=Materia-Palenight
+Comment=A Material Design theme
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=Materia-Palenight
+MetacityTheme=Materia-Palenight
+IconTheme=Adwaita
+CursorTheme=Adwaita
+CursorSize=24

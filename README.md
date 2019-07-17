@@ -16,6 +16,9 @@ Run `xfce4-terminal` by default.
 
 You can connect to the remote VNC session by connecting to `localhost:5900`
 
+> **Note**: The default password is `changeme`,  
+> you can peek a new one by using `-e VNC_PASS=here_your_new_password`
+
 ## Detailed usages
 
 ### Preserve your user's home directory
@@ -27,7 +30,7 @@ To prevent it, you can leverage a docker volume to preserve the user's home dire
 
 `docker run -d --name vnc -p 5900:5900  -v workspace:/home/user gcanal/vcn`  
 
-> **⚠Caution** : I won't recommand mounting a directory from your host machine,
+> **⚠ Caution** : I won't recommend mounting a directory from your host machine,
 > instead, use a docker volume  as demonstrated above.
 
 ### Customize the default user
@@ -93,9 +96,15 @@ The geometry can although be ajusted dynamically:
 | `HEIGHT`       | The screen height in pixels   | `800`         |
 | `REFRESH_RATE` | The screen refresh rate in Hz | `60`          |
 
-
 #### HiDPI on a retina display
 
 Running Docker GUI applications on MacOS which look nice and crisp on retina display and that fell right proven challenging.
 
 To be documented...
+
+## Customization
+
+This project come with a [default theme](https://github.com/nana-4/materia-theme) and support colored emoji, it may not be suitable to you.
+
+For now, it's not customizable, but it MAY be in the future.
+

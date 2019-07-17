@@ -1,0 +1,11 @@
+gtk-can-change-accels = 1
+
+gtk-icon-theme-name = "Faenza-Dark"
+gtk-theme-name = "Materia-Palenight"
+
+style "user-font"
+{
+        font_name="Terminus 10"
+}
+widget_class "*" style "user-font"
+gtk-font-name = "Terminus 10"

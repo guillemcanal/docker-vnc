@@ -3,6 +3,9 @@
 set -e
 
 main() {
+	# remove temporary X11 files
+	rm -rf /tmp/.X*
+
 	# create user's home directory
 	if [ ! -d "$HOME" ];then
 		mkdir $HOME
@@ -30,7 +33,7 @@ main() {
 	# create docker group
 	local DOCKER_CHECK="$(id -u docker 2> /dev/null || echo "UNKNOWN")"
 	if [ "$DOCKER_CHECK" == "UNKNOWN" ];then
-		groupadd --gid 999 docker
+		groupadd --gid 999 docker || true
 	fi
 
 	# fix docker socket permission

@@ -8,8 +8,8 @@ ENV HOME=/home/user \
 	USER_SUDOER=yes \
 	# vnc settings
 	VNC_DPI=100 \
-	VNC_GEOMETRY=1280x1024 \
-	VNC_PASS=vncpassword \
+	VNC_GEOMETRY=1920x1080 \
+	VNC_PASS=changeme \
 	# default language
 	LANG=en_US.UTF-8 \
 	LANGUAGE=en_US:en \
@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
 	vim wget locales bzip2 sudo gosu zsh git curl \
 	apt-transport-https ca-certificates gnupg-agent software-properties-common \
 	# x11
-	xfonts-base xserver-xorg-input-all xinit xserver-xorg xserver-xorg-video-all x11-xserver-utils libgtk2.0-common xclip dbus-x11 \
+	xfonts-base xserver-xorg-input-all xinit xserver-xorg xserver-xorg-video-all x11-xserver-utils libgtk2.0-common xclip dbus-x11 fonts-noto-color-emoji \
 	# terminal
 	xfce4-terminal \
 	# windows manager

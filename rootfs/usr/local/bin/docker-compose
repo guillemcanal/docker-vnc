@@ -1,25 +1,113 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 
-## A docker-compose wrapper that resolve directory paths for mounted volumes
+import argparse
+import yaml
+import json
+import re
+import os
+import sys
+import tempfile
+import subprocess
 
-set -e
+def run_docker_compose(args):
+    cmd = args.copy()
+    cmd.insert(0, '/usr/bin/docker-compose')
 
-main() {
-	local CURRENT_PATH="$(pwd)"
-	local CONTAINER_ID="$(hostname)"
-	local DOCKER_BIN="$(which -a docker | tail -n1)"
-	local DOCKER_COMPOSER_BIN="$(which -a docker-compose | tail -n1)"
-	local VOLUMES="$($DOCKER_BIN inspect --format='{{range .Mounts}}{{ if and (eq .Type "volume") }}{{printf "%s:%s\n" .Source .Destination}}{{end}}{{end}}' $HOSTNAME | sed '/^$/d')"
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        print('[ERROR] Error while executing ' + ' '.join(cmd))
+        exit(e.returncode)
 
-	for VOLUME in $VOLUMES;do
-		local VOLUME_SRC="${VOLUME%%:*}"
-		local VOLUME_DST="${VOLUME#*:}"
-		if [[ "$CURRENT_PATH" =~ ^${VOLUME_DST} ]];then
-			CURRENT_PATH=$VOLUME_SRC
-		fi
-	done
-	
-	$DOCKER_COMPOSER_BIN --project-directory=$CURRENT_PATH "$@"
-}
+def extract_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--file', type=argparse.FileType('r'), action='append', default=[])
+    args, unknown = parser.parse_known_args()
+    
+    return args, unknown
 
-main "$@"
+def exec_cmd(cmd):
+    return os.popen(cmd).read()
+
+# return a list of mounted volume
+def container_volumes():
+    # current container ID
+    docker_container_id = exec_cmd('cut -c9- < /proc/1/cpuset')
+
+    # inspect the current container
+    docker_container_meta = json.loads(exec_cmd('docker inspect ' + docker_container_id))
+
+    container_volumes = []
+    try:
+        for mount in docker_container_meta[0]['Mounts']:
+            if mount['Type'] == 'volume':
+                container_volumes.append(mount)
+    except:
+        pass
+    
+    return container_volumes
+
+# @FIXME fail when a volume was not properly mapped into the current container
+def container_volume_replace(current_dirname, container_volumes, volume):
+    volume = os.path.expandvars(volume)
+    if ':' in volume:
+        volume_mapping = volume.split(':')
+        volume_mapping[0] = os.path.expanduser(volume_mapping[0])
+
+        # build absolute path
+        if volume_mapping[0].startswith('.'):
+            volume_mapping[0] = re.sub(r'^.', current_dirname, volume_mapping[0])
+        
+        # resolve container's volumes mapping
+        if volume_mapping[0].startswith('/'):
+            for container_volume in container_volumes:
+                if volume_mapping[0].startswith(container_volume['Destination']):
+                    volume_mapping[0] = volume_mapping[0].replace(container_volume['Destination'], container_volume['Source'])
+        volume = ':'.join(volume_mapping)
+
+    return volume
+
+def resolve_docker_compose_volumes(container_volumes, dockerfile):
+    dockerfile_path = os.path.dirname(os.path.abspath(dockerfile.name))
+    definition = yaml.safe_load(dockerfile)
+    if 'services' in definition:
+        for service_name, service in definition['services'].items():
+            if 'volumes' in service:
+                for volume_idx, volume in enumerate(service['volumes']):
+                    definition['services'][service_name]['volumes'][volume_idx] = container_volume_replace(dockerfile_path, container_volumes, volume)
+
+    return yaml.dump(definition, default_flow_style=False, sort_keys=False)
+
+def main():
+    args, other_args = extract_args()
+    volumes = container_volumes()
+    new_args = []
+    dockerfiles = []
+
+    # fix volume mappings
+    for file in args.file:
+        dockerfile_path = tempfile.mktemp(suffix='.yaml')
+        dockerfiles.append(dockerfile_path)
+        new_args.extend(['--file', dockerfile_path])
+        with open(dockerfile_path, 'w') as dockerfile:
+            dockerfile_content = resolve_docker_compose_volumes(volumes, file)
+            dockerfile.write(dockerfile_content)
+    
+    # add project directory
+    current_directory = os.getcwd()
+    for container_volume in volumes:
+        if current_directory.startswith(container_volume['Destination']):
+            project_directory = current_directory.replace(container_volume['Destination'], container_volume['Source'])
+            new_args.extend(['--project-directory', project_directory])
+
+    # append other arguments
+    new_args.extend(other_args)
+
+    # run the original docker-compose binary
+    run_docker_compose(new_args)
+
+    # remove temporary dockerfiles
+    for dockerfile in dockerfiles:
+        os.remove(dockerfile)
+
+main()

@@ -5,6 +5,10 @@
 set -e
 
 cleanup () {
+    # save /etc/hosts
+    cp /etc/hosts $HOME/.hosts
+    
+	# terminate the current process
 	echo "exiting with PID $PID"
     kill -s $PID
     exit 0
@@ -40,6 +44,7 @@ configure_vnc() {
 	cat <<-EOF > $HOME/.vnc/xstartup
 	#!/usr/bin/env bash
 	xrdb $HOME/.Xresources
+	xmodmap $HOME/.Xmodmap
 	i3 &
 	EOF
 

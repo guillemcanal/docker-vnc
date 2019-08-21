@@ -6,6 +6,12 @@ main() {
 	# remove temporary X11 files
 	rm -rf /tmp/.X*
 
+	# apply user hosts file if exists
+	# @TODO verify than the saved hosts file is not "fucked up"
+	if [ -f "$HOME/.hosts" ];then
+		cp $HOME/.hosts /etc/hosts
+	fi
+
 	# create user's home directory
 	if [ ! -d "$HOME" ];then
 		mkdir $HOME

@@ -29,6 +29,10 @@ RUN apt-get update && apt-get install -y \
 	xfce4-terminal \
 	# windows manager
 	i3 \
+	# python dependencies
+	python3 python3-pip \
+	# python modules
+	&& pip3 install pyyaml \
 	# vnc server
 	&& wget -qO- https://dl.bintray.com/tigervnc/stable/tigervnc-1.9.0.x86_64.tar.gz | tar xz --strip 1 -C / \
 	# docker cli & docker-compose (for docker in docker purposes)
